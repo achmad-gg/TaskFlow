@@ -1,0 +1,110 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── User ───────────────────────────────────────────────────────────────────
+// Decisions:
+// - role is an Enum for type safety, not a string
+// - refreshToken stored in DB for token rotation & revocation capability
+// - isActive allows soft-disabling accounts without deleting data
+model User {
+  id           String  @id @default(cuid()) // cuid > uuid for URL safety + sortability
+  email        String  @unique
+  username     String  @unique
+  passwordHash String // Never "password" — naming matters for code reviews
+  role         Role    @default(USER)
+  isActive     Boolean @default(true)
+  avatar       String?
+  bio          String?
+
+  // Token management
+  refreshToken String? // Stored hashed for security
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastLoginAt DateTime?
+
+  // Relations
+  tasks      Task[]
+  activities ActivityLog[]
+
+  @@map("users") // Snake_case table names — SQL convention
+}
+
+// ─── Task ────────────────────────────────────────────────────────────────────
+// Decisions:
+// - dueDate is optional — not every task has a deadline
+// - position field enables drag-and-drop ordering (future feature)
+// - tags stored as String[] — simpler than a junction table for MVP
+model Task {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  dueDate     DateTime?
+  tags        String[]     @default([])
+  position    Int          @default(0) // For ordered lists / kanban
+
+  // Audit fields
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime? // Track when done for analytics
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId]) // Always index foreign keys
+  @@index([status]) // Queries filter by status frequently
+  @@index([priority]) // Same for priority
+  @@index([createdAt]) // Pagination & analytics queries
+  @@map("tasks")
+}
+
+// ─── Activity Log ────────────────────────────────────────────────────────────
+// Why: Audit trails are a legal requirement in many B2B SaaS products.
+// Also powers the "recent activity" feed on the dashboard.
+model ActivityLog {
+  id        String   @id @default(cuid())
+  type      String // References ACTIVITY_TYPES constants
+  metadata  Json? // Flexible storage for context (old/new values, etc.)
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+enum Role {
+  USER
+  ADMIN
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
