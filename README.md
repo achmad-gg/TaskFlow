@@ -41,14 +41,14 @@
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/your‑username/TaskFlow.git
+git clone https://github.com/achmad-gg/TaskFlow.git
 cd TaskFlow
 ```
 
 ### 2. Backend configuration
 ```bash
 cd backend
-cp .env.example .env   # copy the example file
+cp .env.example   # copy the example file
 ```
 Edit `.env` and set the following variables:
 ```env
@@ -129,3 +129,6 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## 🎉 Thanks for checking out TaskFlow!
 Feel free to open an issue if you run into bugs or have feature ideas.
+
+## Screenshot
+![Dashboard Preview](./assets/screenshots/dashboard.png)
